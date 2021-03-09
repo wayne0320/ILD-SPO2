@@ -1,0 +1,40 @@
+[Rstudio
+纳入标准
+CREATE TABLE jzxfb1 as
+WITH idd as(
+SELECT DISTINCT patientunitstayid
+FROM treatment
+where treatmentstring like 'pulmonary|ventilation and oxygenation%')
+SELECT DISTINCT diagnosis.patientunitstayid,gender,unitdischargeoffset,CASE WHEN unitdischargestatus like 'Alive' THEN 0 ELSE 1 END as unitdischargestatus,hospitaldischargeoffset, CASE WHEN hospitaldischargestatus like 'Alive' THEN 0 ELSE 1 END AS hospitaldischargestatus,
+CASE WHEN age like '> 89' then '92' ELSE age end as age
+FROM "diagnosis",patient,idd
+WHERE diagnosisstring like 'pulmonary|disorders of lung parenchyma|interstitial lung disease%' AND (diagnosispriority like 'Primary' OR diagnosispriority like 'Major') AND patient.patientunitstayid=diagnosis.patientunitstayid AND idd.patientunitstayid=diagnosis.patientunitstayid
+
+
+排除标准
+WITH idd as(
+SELECT peid.*, pivoted_vital.chartoffset,pivoted_vital.spo2,apache4.apache4score,apache4vent.intubatedday1,apache4vent.ventday1,apache4.actualhospitallos
+FROM "pivoted_vital", jzxfb1 as peid,apache4,apache4vent
+WHERE pivoted_vital.patientunitstayid=peid.patientunitstayid AND pivoted_vital.spo2 is NOT NULL AND apache4.patientunitstayid=peid.patientunitstayid AND peid.patientunitstayid=apache4vent.patientunitstayid
+ORDER BY peid.patientunitstayid,chartoffset),iddd as(
+SELECT patientunitstayid,count(spo2) as spnum
+FROM idd
+GROUP BY patientunitstayid),idddd as(
+SELECT patientunitstayid,spnum
+FROM iddd
+WHERE spnum>10),iddddd as(
+SELECT idddd.patientunitstayid
+FROM idddd,icustay_detail
+WHERE idddd.patientunitstayid=icustay_detail.patientunitstayid AND icustay_detail.icu_los_hours>=48
+ORDER BY idddd.patientunitstayid),idddddd as(
+SELECT  iddddd.patientunitstayid
+FROM iddddd,icustay_detail
+WHERE iddddd.patientunitstayid=icustay_detail.patientunitstayid AND icustay_detail.unitvisitnumber=1
+ORDER BY iddddd.patientunitstayid),iddddddd as(
+SELECT DISTINCT idddddd.patientunitstayid 
+FROM idddddd,pivoted_lab 
+WHERE idddddd.patientunitstayid=pivoted_lab.patientunitstayid AND pivoted_lab.hemoglobin>6)
+SELECT DISTINCT idd.*
+FROM iddddddd,pivoted_lab,idd
+WHERE iddddddd.patientunitstayid=pivoted_lab.patientunitstayid AND pivoted_lab.hemoglobin<18 AND idd.patientunitstayid=iddddddd.patientunitstayid
+ORDER BY idd.patientunitstayid,chartoffset
