@@ -1,0 +1,14 @@
+library(doBy)
+library(nlme)
+library(mgcv)
+yy <- summaryBy(spo2 ~ patientunitstayid+age+ gender+apache4score+ hospitaldischargestatus+hospitaldischargeoffset, data = jzxfb, FUN = list(median))
+gam1 <-  gam( hospitaldischargestatus ~ s(spo2.median)+s(age)+s(apache4score)+s(hospitaldischargeoffset),fammily=binomial,method="REML",data=yy)
+plot(gam1)
+
+验证
+gam2 <-  gam( hospitaldischargestatus ~ s(sp96)+s(age)+s(apache4score)+s(hospitaldischargeoffset),fammily=binomial,method="REML",data=jxtqhz)
+gam3 <-  gam( hospitaldischargestatus ~ s(sp9698)+s(age)+s(apache4score)+s(hospitaldischargeoffset),fammily=binomial,method="REML",data=jxtqhz)
+gam4 <-  gam( hospitaldischargestatus ~ s(sp98)+s(age)+s(apache4score)+s(hospitaldischargeoffset),fammily=binomial,method="REML",data=jxtqhz)
+plot(gam2)
+plot(gam3)
+plot(gam4)
